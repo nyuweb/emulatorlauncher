@@ -229,28 +229,6 @@ namespace EmulatorLauncher.Libretro
 
             BindFeature(retroarchConfig, "state_slot", "state_slot", "0");
 
-            // Shaders
-            if (AppConfig.isOptSet("shaders") && SystemConfig.isOptSet("shader") && SystemConfig["shader"] != "None")
-                retroarchConfig["video_shader_enable"] = "true";
-            else if (Features.IsSupported("shaderset"))
-                retroarchConfig["video_shader_enable"] = "false";
-
-            // Video filters
-            string videoFiltersPath = Path.Combine(RetroarchPath, "filters", "video");
-            if (Directory.Exists(videoFiltersPath))
-                retroarchConfig["video_filter_dir"] = videoFiltersPath;
-            
-            if (SystemConfig.isOptSet("videofilters") && !string.IsNullOrEmpty(SystemConfig["videofilters"]) && SystemConfig["videofilters"] != "None")
-            {
-                string videofilter = SystemConfig["videofilters"] + ".filt";
-                retroarchConfig["video_filter"] = Path.Combine(videoFiltersPath, videofilter);
-            }
-            else if (Features.IsSupported("videofilters"))
-            {
-                retroarchConfig["video_filter_dir"] = ":\\filters\\video";
-                retroarchConfig["video_filter"] = "";
-            }
-
             // Aspect ratio
             if (SystemConfig.isOptSet("ratio"))
             {
@@ -818,9 +796,6 @@ namespace EmulatorLauncher.Libretro
                 type = UIModeType.Minimal;
             else if (SystemConfig["OptionsMenu"] == "full")
                 type = UIModeType.Full;
-
-            foreach(var item in UIModes)
-                retroarchConfig[item.Name] = item.GetValue(type);
         }
 
         private void SetLanguage(ConfigFile retroarchConfig)
@@ -1321,34 +1296,6 @@ namespace EmulatorLauncher.Libretro
                 {
                     commandArray.Add("--connect " + SystemConfig["netplayip"]);
                     commandArray.Add("--port " + SystemConfig["netplayport"]);
-                }
-            }
-
-            // RetroArch 1.7.8 requires the shaders to be passed as command line argument      
-            if (AppConfig.isOptSet("shaders") && SystemConfig.isOptSet("shader") && SystemConfig["shader"] != "None")
-            {
-                string videoDriver = ConfigFile.FromFile(Path.Combine(RetroarchPath, "retroarch.cfg"))["video_driver"];
-                bool isOpenGL = (emulator != "angle") && (videoDriver == "gl");
-
-                string shaderFilename = SystemConfig["shader"] + (isOpenGL ? ".glslp" : ".slangp");
-
-                string videoShader = Path.Combine(AppConfig.GetFullPath("shaders"), shaderFilename).Replace("/", "\\");
-                if (!File.Exists(videoShader))
-                    videoShader = Path.Combine(AppConfig.GetFullPath("shaders"), isOpenGL ? "shaders_glsl" : "shaders_slang", shaderFilename).Replace("/", "\\");
-
-                if (!File.Exists(videoShader))
-                    videoShader = Path.Combine(AppConfig.GetFullPath("shaders"), isOpenGL ? "glsl" : "slang", shaderFilename).Replace("/", "\\");
-
-                if (!File.Exists(videoShader))
-                    videoShader = Path.Combine(RetroarchPath, "shaders", isOpenGL ? "shaders_glsl" : "shaders_slang", shaderFilename).Replace("/", "\\");
-
-                if (!File.Exists(videoShader) && !isOpenGL && shaderFilename.Contains("zfast-"))
-                    videoShader = Path.Combine(RetroarchPath, "shaders", isOpenGL ? "shaders_glsl" : "shaders_slang", "crt/crt-geom.slangp").Replace("/", "\\");
-
-                if (File.Exists(videoShader))
-                {
-                    commandArray.Add("--set-shader");
-                    commandArray.Add("\"" + videoShader + "\"");
                 }
             }
 
